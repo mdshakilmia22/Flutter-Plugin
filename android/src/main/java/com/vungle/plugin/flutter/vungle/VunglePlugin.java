@@ -23,7 +23,6 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** VunglePlugin */
 public class VunglePlugin implements FlutterPlugin, MethodCallHandler {
@@ -41,39 +40,21 @@ public class VunglePlugin implements FlutterPlugin, MethodCallHandler {
     consentStatusToStr.put(Vungle.Consent.OPTED_OUT, "Denied");
   }
 
-  /** v1 Plugin registration. */
-  public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), channelName);
-    channel.setMethodCallHandler(new VunglePlugin(registrar.context(), channel));
-  }
-
-  /** v2 Plugin registration */
-  private static void setup(VunglePlugin plugin, BinaryMessenger binaryMessenger) {
-    plugin.channel = new MethodChannel(binaryMessenger, channelName);
-    plugin.channel.setMethodCallHandler(plugin);
-  }
-
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
     this.context = binding.getApplicationContext();
-    setup(this, binding.getBinaryMessenger());
+    this.channel = new MethodChannel(binding.getBinaryMessenger(), channelName);
+    this.channel.setMethodCallHandler(this);
   }
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     this.context = null;
+    this.channel.setMethodCallHandler(null);
+    this.channel = null;
   }
 
-  public VunglePlugin() {
-    // All Android plugin classes must support a no-args 
-    // constructor for v2.
-  }
-
-  private VunglePlugin(Context context, MethodChannel channel) {
-    this.context = context;
-    this.channel = channel;
-  }
-
+  @Override
   public void onMethodCall(MethodCall call, Result result) {
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
@@ -214,10 +195,6 @@ public class VunglePlugin implements FlutterPlugin, MethodCallHandler {
     if(placementId != null) {
       result.success(Vungle.canPlayAd(placementId));
     }
-  }
-
-  private void callGetConsentStatus(MethodCall call, Result result) {
-    
   }
 
   private void callUpdateConsentStatus(MethodCall call, Result result) {
